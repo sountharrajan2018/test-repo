@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design Tokens</title>
+  <meta name="color-scheme" content="light dark">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      line-height: var(--leading-normal);
+      transition: background var(--duration-base) var(--ease-standard),
+                  color var(--duration-base) var(--ease-standard);
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-4) var(--space-12); }
+    .top { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; justify-content: space-between; margin-bottom: var(--space-8); }
+    h1 { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); line-height: var(--leading-tight); }
+    h2 { margin: var(--space-12) 0 var(--space-4); font-family: var(--font-display); font-size: var(--text-xl); }
+    .muted { color: var(--color-text-muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+    .swatch { overflow: hidden; }
+    .swatch .chip { height: 64px; border-bottom: 1px solid var(--color-border); }
+    .swatch .meta { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); }
+    .swatch code { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted); }
+    .row { display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+    .row code { flex: 0 0 110px; font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted); }
+    .bar { height: 12px; background: var(--color-accent); border-radius: 2px; }
+    .shapes { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+    .shape { width: 96px; height: 64px; display: grid; place-items: center; background: var(--color-surface-sunken); border: 1px solid var(--color-border); font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted); }
+    .components { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; padding: var(--space-6); }
+    a { color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Design tokens</h1>
+        <p class="muted" style="margin:var(--space-1) 0 0">Switch the theme to see every token change. Values come from <code>tokens.css</code>.</p>
+      </div>
+      <fieldset class="theme-toggle">
+        <legend>Color theme</legend>
+        <input type="radio" name="theme" id="theme-light" value="light"><label for="theme-light">Light</label>
+        <input type="radio" name="theme" id="theme-system" value="system"><label for="theme-system">System</label>
+        <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark">Dark</label>
+      </fieldset>
+    </div>
+
+    <h2>Color</h2>
+    <div class="grid" id="colors"></div>
+
+    <h2>Typography</h2>
+    <div id="type"></div>
+
+    <h2>Spacing</h2>
+    <div id="space"></div>
+
+    <h2>Radius</h2>
+    <div class="shapes" id="radius"></div>
+
+    <h2>Components</h2>
+    <div class="card components">
+      <button class="btn" type="button">Primary</button>
+      <button class="btn btn-secondary" type="button">Secondary</button>
+      <a href="index.html">Link to the page</a>
+    </div>
+  </div>
+
+  <script>
+    const css = getComputedStyle(document.documentElement);
+    const v = (name) => css.getPropertyValue(name).trim();
+    const el = (tag, attrs = {}, text) => {
+      const n = document.createElement(tag);
+      Object.assign(n, attrs);
+      if (text) n.textContent = text;
+      return n;
+    };
+
+    const colors = ['bg', 'surface', 'surface-sunken', 'text', 'text-muted', 'border', 'accent', 'accent-hover', 'on-accent', 'focus'];
+    const colorGrid = document.getElementById('colors');
+    const colorCodes = [];
+    colors.forEach((c) => {
+      const card = el('div', { className: 'card swatch' });
+      const chip = el('div', { className: 'chip' });
+      chip.style.background = `var(--color-${c})`;
+      const meta = el('div', { className: 'meta' });
+      meta.append(el('div', {}, c), el('code'));
+      colorCodes.push([c, meta.lastChild]);
+      card.append(chip, meta);
+      colorGrid.append(card);
+    });
+    function refreshHex() {
+      const s = getComputedStyle(document.documentElement);
+      colorCodes.forEach(([c, code]) => { code.textContent = s.getPropertyValue(`--color-${c}`).trim(); });
+    }
+    refreshHex();
+    new MutationObserver(refreshHex).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshHex);
+
+    const type = document.getElementById('type');
+    [['2xl', 'display'], ['xl', 'display'], ['lg', 'body'], ['base', 'body'], ['sm', 'body']].forEach(([size, family]) => {
+      const row = el('div', { className: 'row' });
+      const sample = el('span', {}, family === 'display' ? 'Hello, World' : 'The quick brown fox jumps over the lazy dog');
+      sample.style.fontSize = `var(--text-${size})`;
+      sample.style.fontFamily = `var(--font-${family})`;
+      row.append(el('code', {}, `text-${size} · ${v('--text-' + size)}`), sample);
+      type.append(row);
+    });
+
+    const space = document.getElementById('space');
+    ['1', '2', '3', '4', '6', '8', '12'].forEach((s) => {
+      const row = el('div', { className: 'row' });
+      row.style.alignItems = 'center';
+      const bar = el('div', { className: 'bar' });
+      bar.style.width = `var(--space-${s})`;
+      row.append(el('code', {}, `space-${s} · ${v('--space-' + s)}`), bar);
+      space.append(row);
+    });
+
+    const radius = document.getElementById('radius');
+    ['sm', 'md', 'lg', 'full'].forEach((r) => {
+      const box = el('div', { className: 'shape' }, `radius-${r}`);
+      box.style.borderRadius = `var(--radius-${r})`;
+      radius.append(box);
+    });
+  </script>
+</body>
+</html>
