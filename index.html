@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello, World</title>
+  <title>Angle Encoding Demo</title>
+  <meta name="description" content="Interactive demo of angle encoding: classical features loaded into qubits with RY rotations.">
   <meta name="color-scheme" content="light dark">
   <script src="theme.js"></script>
   <link rel="stylesheet" href="tokens.css">
@@ -12,8 +13,6 @@
     body {
       margin: 0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
       background: var(--color-bg);
       color: var(--color-text);
       font-family: var(--font-body);
@@ -28,16 +27,13 @@
       padding: var(--space-4);
     }
     main {
-      flex: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 var(--space-4) var(--space-12);
       display: grid;
-      place-items: center;
-      padding: var(--space-4);
+      gap: var(--space-6);
     }
-    .card {
-      width: 100%;
-      max-width: 520px;
-      padding: var(--space-8);
-    }
+    .card { padding: var(--space-6); min-width: 0; }
     .eyebrow {
       margin: 0 0 var(--space-2);
       font-size: var(--text-sm);
@@ -53,26 +49,96 @@
       font-weight: 600;
       line-height: var(--leading-tight);
     }
-    .lede {
-      margin: 0 0 var(--space-8);
-      color: var(--color-text-muted);
+    h2 {
+      margin: 0 0 var(--space-2);
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: 600;
+      line-height: var(--leading-tight);
     }
-    .counter {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--space-4);
-    }
-    .count {
+    p { margin: 0 0 var(--space-3); }
+    .lede { margin: 0; color: var(--color-text-muted); max-width: 64ch; }
+    .muted { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .formula {
+      display: inline-block;
+      margin-top: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface-sunken);
       font-family: var(--font-mono);
       font-size: var(--text-sm);
-      color: var(--color-text-muted);
-      font-variant-numeric: tabular-nums;
     }
-    .count strong { color: var(--color-text); font-size: var(--text-lg); }
-    @media (max-width: 480px) {
-      .card { padding: var(--space-6); }
+
+    .grid-2 { display: grid; gap: var(--space-6); }
+    @media (min-width: 760px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+
+    /* Feature sliders */
+    .slider { display: grid; gap: var(--space-1); margin-top: var(--space-4); }
+    .slider-head { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+    .slider label { font-weight: 600; }
+    input[type="range"] { width: 100%; accent-color: var(--color-accent); min-height: 32px; }
+    input[type="range"]:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+    /* Circuit and Bloch diagrams */
+    svg.diagram { display: block; width: 100%; height: auto; }
+    .stroke-text { stroke: var(--color-text); }
+    .stroke-muted { stroke: var(--color-text-muted); }
+    .stroke-border { stroke: var(--color-border); }
+    .stroke-accent { stroke: var(--color-accent); }
+    .fill-text { fill: var(--color-text); }
+    .fill-muted { fill: var(--color-text-muted); }
+    .fill-accent { fill: var(--color-accent); }
+    .fill-surface { fill: var(--color-surface); }
+    .fill-sunken { fill: var(--color-surface-sunken); }
+    svg text { font-family: var(--font-mono); font-size: 13px; }
+
+    .qubit { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: var(--space-4); align-items: center; }
+    @media (max-width: 420px) { .qubit { grid-template-columns: 1fr; } .qubit svg { max-width: 220px; margin: 0 auto; } }
+    dl.stats { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+    dl.stats dt { color: var(--color-text-muted); }
+    dl.stats dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+    .meter { height: 8px; border-radius: var(--radius-full); background: var(--color-surface-sunken); overflow: hidden; margin-top: var(--space-2); }
+    .meter span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-full); transition: width var(--duration-base) var(--ease-standard); }
+
+    /* Probability chart */
+    .chart-wrap { position: relative; margin-top: var(--space-4); }
+    .bar { fill: var(--color-accent); transition: opacity var(--duration-fast) var(--ease-standard); }
+    .bar-hit { fill: transparent; cursor: default; }
+    .bar-group:hover .bar { opacity: 0.8; }
+    .shot-mark { stroke: var(--color-text); stroke-width: 2; }
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      background: var(--color-text);
+      color: var(--color-bg);
+      font-size: var(--text-sm);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      opacity: 0;
+      transform: translate(-50%, -110%);
+      transition: opacity var(--duration-fast) var(--ease-standard);
     }
+    .tooltip.show { opacity: 1; }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+    .legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; background: var(--color-accent); }
+    .tick { width: 14px; height: 2px; background: var(--color-text); }
+
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-4); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: var(--space-4); font-size: var(--text-sm); }
+    th, td { padding: var(--space-2) var(--space-3); text-align: right; border-bottom: 1px solid var(--color-border); }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--color-text-muted); font-weight: 600; }
+    td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .table-scroll { overflow-x: auto; }
+
+    ul.notes { margin: 0; padding-left: var(--space-6); }
+    ul.notes li { margin-bottom: var(--space-2); }
+    code { font-family: var(--font-mono); font-size: 0.92em; }
   </style>
 </head>
 <body>
@@ -99,27 +165,296 @@
 
   <main>
     <section class="card">
-      <p class="eyebrow">test-repo</p>
-      <h1>Hello, World</h1>
-      <p class="lede">A simple page built on a small token-based design system, with light and dark themes.</p>
-      <div class="counter">
-        <button id="btn" class="btn" type="button">Click me</button>
-        <button id="reset" class="btn btn-secondary" type="button">Reset</button>
-        <span class="count" aria-live="polite">Clicked <strong id="count">0</strong> <span id="unit">times</span></span>
+      <p class="eyebrow">Quantum machine learning</p>
+      <h1>Angle encoding</h1>
+      <p class="lede">A quantum model can only work on data that has been loaded into qubits. Angle encoding gives each feature its own qubit and uses the feature as a rotation angle. Move the sliders to see how the numbers become quantum states and measurement probabilities.</p>
+      <span class="formula">RY(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩</span>
+    </section>
+
+    <div class="grid-2">
+      <section class="card" aria-labelledby="s1">
+        <h2 id="s1">1. Data to angles</h2>
+        <p class="muted">Raw features on a 0 to 6 scale are stretched onto angles from 0 to π, so θ = x / 6 · π. Going past π would rotate the qubit back towards |0⟩, and two different inputs could give the same state.</p>
+        <div class="slider">
+          <div class="slider-head">
+            <label for="x0">Feature x₀ → qubit 0</label>
+            <span class="mono"><span id="x0v">2.0</span> → θ₀ = <span id="t0v"></span></span>
+          </div>
+          <input type="range" id="x0" min="0" max="6" step="0.1" value="2">
+        </div>
+        <div class="slider">
+          <div class="slider-head">
+            <label for="x1">Feature x₁ → qubit 1</label>
+            <span class="mono"><span id="x1v">3.0</span> → θ₁ = <span id="t1v"></span></span>
+          </div>
+          <input type="range" id="x1" min="0" max="6" step="0.1" value="3">
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" id="preset">Reset to the example (2, 3)</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="s2">
+        <h2 id="s2">2. The circuit</h2>
+        <p class="muted">One RY gate per qubit, then a measurement. The circuit is one gate deep, and the qubits never interact, so no entanglement is created.</p>
+        <svg class="diagram" viewBox="0 0 360 150" role="img" aria-labelledby="circ-title">
+          <title id="circ-title">Circuit: qubit 0 and qubit 1 each get an RY rotation, then a measurement</title>
+          <g id="circuit"></g>
+        </svg>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="s3">
+      <h2 id="s3">3. Each qubit on its own</h2>
+      <p class="muted">The circle is a slice through the Bloch sphere: |0⟩ at the top, |1⟩ at the bottom. The arrow is tipped by θ. The amplitudes use θ/2, so a full tip of π takes |0⟩ all the way to |1⟩.</p>
+      <div class="grid-2" id="qubits"></div>
+    </section>
+
+    <section class="card" aria-labelledby="s4">
+      <h2 id="s4">4. Both qubits together</h2>
+      <p class="muted">The joint state is the tensor product: every amplitude of qubit 1 multiplied by every amplitude of qubit 0. Outcomes use Qiskit's order, <strong>q1 q0</strong>, with qubit 0 on the right.</p>
+      <div class="chart-wrap" id="chart-wrap">
+        <svg class="diagram" id="chart" viewBox="0 0 560 260" role="img" aria-labelledby="chart-title">
+          <title id="chart-title">Probability of each two-qubit outcome</title>
+        </svg>
+        <div class="tooltip" id="tooltip" role="presentation"></div>
       </div>
+      <div class="legend">
+        <span><i class="swatch"></i>Exact probability</span>
+        <span><i class="tick"></i>Measured fraction (after sampling)</span>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="measure">Measure 1000 shots</button>
+        <button class="btn btn-secondary" type="button" id="clear">Clear shots</button>
+        <span class="muted" id="shot-status" aria-live="polite">No shots yet.</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Outcome (q1 q0)</th><th scope="col">Amplitude</th><th scope="col">Probability</th><th scope="col">Counts / 1000</th></tr>
+          </thead>
+          <tbody id="table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="s5">
+      <h2 id="s5">Points to watch</h2>
+      <ul class="notes">
+        <li><strong>Bit order.</strong> Qiskit puts qubit 0 on the right of a bitstring. Textbooks such as Nielsen &amp; Chuang put it on the left, so their tables swap 01 and 10.</li>
+        <li><strong>Amplitudes are not probabilities.</strong> A probability is the amplitude squared. Amplitudes can cancel each other when later gates act on them; probabilities cannot.</li>
+        <li><strong>Cost.</strong> One qubit per feature. Amplitude encoding fits 2ⁿ features into n qubits but needs a much deeper circuit.</li>
+        <li><strong>Check it in Python.</strong> <code>python angle_encoding.py</code> builds the same circuit in Qiskit. At the example values (2, 3) it prints probabilities 0.375 / 0.125 / 0.375 / 0.125, matching this page.</li>
+      </ul>
     </section>
   </main>
 
   <script>
-    let clicks = 0;
-    const count = document.getElementById('count');
-    const unit = document.getElementById('unit');
-    function render() {
-      count.textContent = clicks;
-      unit.textContent = clicks === 1 ? 'time' : 'times';
+    const SVG = 'http://www.w3.org/2000/svg';
+    const SHOTS = 1000;
+    const OUTCOMES = ['00', '01', '10', '11'];   // q1 q0, Qiskit order
+    let counts = null;
+    let seed = 7;
+
+    function el(tag, attrs, text) {
+      const node = document.createElementNS(SVG, tag);
+      for (const k in attrs) node.setAttribute(k, attrs[k]);
+      if (text != null) node.textContent = text;
+      return node;
     }
-    document.getElementById('btn').addEventListener('click', () => { clicks += 1; render(); });
-    document.getElementById('reset').addEventListener('click', () => { clicks = 0; render(); });
+
+    // Show an angle as a multiple of pi, using exact fractions where they exist.
+    function piLabel(theta) {
+      const f = theta / Math.PI;
+      const known = { 0: '0', 1: 'π', 0.5: 'π/2', 0.25: 'π/4', 0.75: '3π/4' };
+      for (const k in known) if (Math.abs(f - k) < 1e-9) return known[k];
+      for (const d of [3, 6]) {
+        const n = Math.round(f * d);
+        if (Math.abs(f - n / d) < 1e-9 && n > 0) return (n === 1 ? '' : n) + 'π/' + d;
+      }
+      return f.toFixed(2) + 'π';
+    }
+
+    function state() {
+      const x = [+document.getElementById('x0').value, +document.getElementById('x1').value];
+      const theta = x.map(v => v / 6 * Math.PI);
+      const q = theta.map(t => ({ a0: Math.cos(t / 2), a1: Math.sin(t / 2) }));
+      // Tensor product; index = 2*b1 + b0 matches the bitstring "b1 b0".
+      const amps = OUTCOMES.map(s => (s[0] === '1' ? q[1].a1 : q[1].a0) * (s[1] === '1' ? q[0].a1 : q[0].a0));
+      return { x, theta, q, amps, probs: amps.map(a => a * a) };
+    }
+
+    function drawCircuit(st) {
+      const g = document.getElementById('circuit');
+      g.replaceChildren();
+      [0, 1].forEach(i => {
+        const y = 45 + i * 60;
+        g.append(el('text', { x: 4, y: y + 4, class: 'fill-muted' }, 'q' + i));
+        g.append(el('text', { x: 28, y: y + 4, class: 'fill-muted' }, '|0⟩'));
+        g.append(el('line', { x1: 60, y1: y, x2: 340, y2: y, class: 'stroke-muted', 'stroke-width': 1.5 }));
+        g.append(el('rect', { x: 90, y: y - 18, width: 120, height: 36, rx: 6, class: 'fill-surface stroke-accent', 'stroke-width': 2 }));
+        g.append(el('text', { x: 150, y: y + 5, 'text-anchor': 'middle', class: 'fill-text' }, 'RY(' + piLabel(st.theta[i]) + ')'));
+        g.append(el('rect', { x: 250, y: y - 18, width: 44, height: 36, rx: 6, class: 'fill-sunken stroke-muted', 'stroke-width': 1.5 }));
+        g.append(el('path', { d: `M258 ${y + 8} A14 14 0 0 1 286 ${y + 8}`, fill: 'none', class: 'stroke-text', 'stroke-width': 1.5 }));
+        g.append(el('line', { x1: 272, y1: y + 8, x2: 282, y2: y - 10, class: 'stroke-text', 'stroke-width': 1.5 }));
+      });
+    }
+
+    function blochSVG(i, st) {
+      const t = st.theta[i], cx = 100, cy = 100, r = 72;
+      const px = cx + r * Math.sin(t), py = cy - r * Math.cos(t);
+      const svg = el('svg', { class: 'diagram', viewBox: '0 0 200 200', role: 'img' });
+      svg.append(el('title', {}, `Qubit ${i} tipped by ${piLabel(t)} from |0⟩`));
+      svg.append(el('circle', { cx, cy, r, fill: 'none', class: 'stroke-border', 'stroke-width': 1.5 }));
+      svg.append(el('line', { x1: cx, y1: cy - r, x2: cx, y2: cy + r, class: 'stroke-border', 'stroke-dasharray': '3 4' }));
+      svg.append(el('line', { x1: cx - r, y1: cy, x2: cx + r, y2: cy, class: 'stroke-border', 'stroke-dasharray': '3 4' }));
+      svg.append(el('text', { x: cx, y: cy - r - 8, 'text-anchor': 'middle', class: 'fill-muted' }, '|0⟩'));
+      svg.append(el('text', { x: cx, y: cy + r + 18, 'text-anchor': 'middle', class: 'fill-muted' }, '|1⟩'));
+      svg.append(el('text', { x: cx + r + 4, y: cy + 4, class: 'fill-muted' }, '|+⟩'));
+      if (t > 0.01) {
+        const ar = 28, ax = cx + ar * Math.sin(t), ay = cy - ar * Math.cos(t);
+        svg.append(el('path', { d: `M${cx} ${cy - ar} A${ar} ${ar} 0 0 1 ${ax} ${ay}`, fill: 'none', class: 'stroke-accent', 'stroke-width': 1.5 }));
+        const mid = t / 2, lx = cx + 44 * Math.sin(mid), ly = cy - 44 * Math.cos(mid);
+        svg.append(el('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: 'fill-accent' }, 'θ'));
+      }
+      svg.append(el('line', { x1: cx, y1: cy, x2: px, y2: py, class: 'stroke-accent', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      svg.append(el('circle', { cx: px, cy: py, r: 6, class: 'fill-accent', style: 'stroke: var(--color-surface)', 'stroke-width': 2 }));
+      return svg;
+    }
+
+    function drawQubits(st) {
+      const wrap = document.getElementById('qubits');
+      wrap.replaceChildren();
+      [0, 1].forEach(i => {
+        const { a0, a1 } = st.q[i];
+        const div = document.createElement('div');
+        div.className = 'qubit';
+        div.append(blochSVG(i, st));
+        const info = document.createElement('div');
+        info.innerHTML = `
+          <p style="margin-bottom:var(--space-2)"><strong>Qubit ${i}</strong> <span class="muted mono">θ${'₀₁'[i]} = ${piLabel(st.theta[i])}</span></p>
+          <dl class="stats">
+            <dt>amplitude of |0⟩ = cos(θ/2)</dt><dd>${a0.toFixed(4)}</dd>
+            <dt>amplitude of |1⟩ = sin(θ/2)</dt><dd>${a1.toFixed(4)}</dd>
+            <dt>P(1) = sin²(θ/2)</dt><dd>${(a1 * a1).toFixed(4)}</dd>
+            <dt>⟨Z⟩ = cos θ</dt><dd>${Math.cos(st.theta[i]).toFixed(4)}</dd>
+          </dl>
+          <div class="meter" aria-hidden="true"><span style="width:${(a1 * a1 * 100).toFixed(1)}%"></span></div>`;
+        div.append(info);
+        wrap.append(div);
+      });
+    }
+
+    function drawChart(st) {
+      const svg = document.getElementById('chart');
+      svg.querySelectorAll('g, line, text').forEach(n => n.remove());
+      // Draw in real pixels so text stays 13px at any screen width.
+      const W = Math.max(280, document.getElementById('chart-wrap').clientWidth);
+      svg.setAttribute('viewBox', `0 0 ${W} 260`);
+      const L = 44, R = W - 8, T = 24, B = 220, H = B - T;
+      const y = p => B - p * H;
+      [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+        svg.append(el('line', { x1: L, y1: y(v), x2: R, y2: y(v), class: 'stroke-border', 'stroke-width': 1 }));
+        svg.append(el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'fill-muted' }, v.toFixed(2)));
+      });
+      const slot = (R - L) / 4, bw = Math.min(72, slot * 0.5);
+      OUTCOMES.forEach((s, k) => {
+        const p = st.probs[k], cx = L + slot * (k + 0.5), top = y(p);
+        const g = el('g', { class: 'bar-group' });
+        const h = Math.max(0, B - top), rr = Math.min(4, h / 2);
+        // Rounded top, square base anchored on the axis.
+        g.append(el('path', {
+          class: 'bar',
+          d: `M${cx - bw / 2} ${B} V${top + rr} Q${cx - bw / 2} ${top} ${cx - bw / 2 + rr} ${top} H${cx + bw / 2 - rr} Q${cx + bw / 2} ${top} ${cx + bw / 2} ${top + rr} V${B} Z`
+        }));
+        const shotY = counts ? y(counts[s] / SHOTS) : top;
+        if (counts) {
+          g.append(el('line', { x1: cx - bw / 2 - 6, y1: shotY, x2: cx + bw / 2 + 6, y2: shotY, class: 'shot-mark' }));
+        }
+        // Label sits above whichever is higher: the bar or the measured mark.
+        g.append(el('text', { x: cx, y: Math.min(top, shotY) - 8, 'text-anchor': 'middle', class: 'fill-text' }, p.toFixed(3)));
+        g.append(el('text', { x: cx, y: B + 22, 'text-anchor': 'middle', class: 'fill-text' }, s));
+        const hit = el('rect', { class: 'bar-hit', x: cx - slot / 2, y: T, width: slot, height: H + 30 });
+        hit.addEventListener('pointerenter', () => showTip(k, st, cx, Math.min(top, shotY)));
+        hit.addEventListener('pointerleave', hideTip);
+        g.append(hit);
+        svg.append(g);
+      });
+      svg.append(el('line', { x1: L, y1: B, x2: R, y2: B, class: 'stroke-muted', 'stroke-width': 1.5 }));
+    }
+
+    const tip = document.getElementById('tooltip');
+    function showTip(k, st, cx, top) {
+      const s = OUTCOMES[k];
+      const f1 = s[0] === '1' ? 'sin' : 'cos', f0 = s[1] === '1' ? 'sin' : 'cos';
+      let html = `|${s}⟩: ${f1}(θ₁/2)·${f0}(θ₀/2)<br>amplitude ${st.amps[k].toFixed(4)} · P ${st.probs[k].toFixed(4)}`;
+      if (counts) html += `<br>measured ${counts[s]} / ${SHOTS}`;
+      tip.innerHTML = html;
+      const w = document.getElementById('chart').getBoundingClientRect().width;
+      tip.style.left = Math.min(Math.max(cx, 120), w - 120) + 'px';
+      tip.style.top = (top - 20) + 'px';
+      tip.classList.add('show');
+    }
+    function hideTip() { tip.classList.remove('show'); }
+
+    function drawTable(st) {
+      document.getElementById('table').innerHTML = OUTCOMES.map((s, k) => `
+        <tr><td>${s}</td><td>${st.amps[k].toFixed(4)}</td><td>${st.probs[k].toFixed(4)}</td><td>${counts ? counts[s] : '—'}</td></tr>`).join('');
+    }
+
+    // Small seeded generator so every visitor sees the same first run.
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function measure() {
+      const st = state(), rand = mulberry32(seed++);
+      counts = { '00': 0, '01': 0, '10': 0, '11': 0 };
+      for (let n = 0; n < SHOTS; n++) {
+        let r = rand(), k = 0;
+        while (k < 3 && r >= st.probs[k]) { r -= st.probs[k]; k++; }
+        counts[OUTCOMES[k]]++;
+      }
+      document.getElementById('shot-status').textContent =
+        `Measured ${SHOTS} shots: ` + OUTCOMES.map(s => `${s}: ${counts[s]}`).join(', ') + '. Press again for a new random run.';
+      render();
+    }
+
+    function render() {
+      const st = state();
+      document.getElementById('x0v').textContent = st.x[0].toFixed(1);
+      document.getElementById('x1v').textContent = st.x[1].toFixed(1);
+      document.getElementById('t0v').textContent = piLabel(st.theta[0]);
+      document.getElementById('t1v').textContent = piLabel(st.theta[1]);
+      drawCircuit(st);
+      drawQubits(st);
+      drawChart(st);
+      drawTable(st);
+    }
+
+    function clearShots() {
+      counts = null;
+      document.getElementById('shot-status').textContent = 'No shots yet.';
+      render();
+    }
+
+    ['x0', 'x1'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+      if (counts) clearShots(); else render();
+    }));
+    document.getElementById('preset').addEventListener('click', () => {
+      document.getElementById('x0').value = 2;
+      document.getElementById('x1').value = 3;
+      clearShots();
+    });
+    document.getElementById('measure').addEventListener('click', measure);
+    document.getElementById('clear').addEventListener('click', clearShots);
+    window.addEventListener('resize', () => drawChart(state()));
+    render();
   </script>
 </body>
 </html>
